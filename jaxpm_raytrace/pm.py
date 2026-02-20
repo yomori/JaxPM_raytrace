@@ -213,11 +213,13 @@ def nbody_kdk(pos, vel, a_steps, cosmo, mesh_shape, return_all=False):
     return pos, vel
 
 
-def nbody_ray_kdk(pos, vel, theta, eta, A, B, a_steps, cosmo, mesh_shape, box_size):
+def nbody_ray_kdk(pos, vel, theta, eta, A, B, a_steps, cosmo, mesh_shape, box_size, return_ray_history=False):
     """
     N-body and ray tracing in lockstep (pmwd-style KDK, backward in a).
     a_steps: descending [a0=1, ..., a_min] (observer to source).
     Returns (pos, vel), (theta, eta, A, B), (kappa, gamma1, gamma2, omega).
+    If return_ray_history is True, also returns (ray_chi_per_step, ray_theta_per_step):
+      ray_chi_per_step: (n_steps+1,) chi at each step; ray_theta_per_step: (n_steps+1, n_ray, 2).
     """
     def _chi_scalar(a):
         chi = jc.background.radial_comoving_distance(cosmo, a)
@@ -227,15 +229,15 @@ def nbody_ray_kdk(pos, vel, theta, eta, A, B, a_steps, cosmo, mesh_shape, box_si
     growth_factor(cosmo, jnp.atleast_1d(a_steps[0]))
     acc = nbody_init_acc(pos, mesh_shape, cosmo)
     n = len(a_steps)
+    chis_list = [_chi_scalar(a_steps[0])]
+    thetas_list = [theta]
     for i in range(n - 1):
         a_prev = float(a_steps[i])
         a_next = float(a_steps[i + 1])
         chi_prev = _chi_scalar(a_prev)
         chi_next = _chi_scalar(a_next)
-        # Stop if we already reached the box far side.
         if chi_prev >= float(box_size[2]):
             break
-        # If this step would overshoot the box, trim to the exact chi = box_size[2] crossing.
         if chi_next > float(box_size[2]):
             lo = a_next
             hi = a_prev
@@ -252,8 +254,15 @@ def nbody_ray_kdk(pos, vel, theta, eta, A, B, a_steps, cosmo, mesh_shape, box_si
         theta, eta, A, B = ray_tracing_postborn.ray_step_kdk(
             theta, eta, A, B, a_prev, a_next, grad_phi_3d, cosmo, box_size, mesh_shape
         )
+        chis_list.append(chi_next)
+        thetas_list.append(theta)
         pos, vel, acc = nbody_kdk_step(a_prev, a_next, pos, vel, acc, cosmo, mesh_shape)
         if chi_next > float(box_size[2]):
             break
     kappa, gamma1, gamma2, omega = ray_tracing_postborn.observe_from_A(A)
-    return (pos, vel), (theta, eta, A, B), (kappa, gamma1, gamma2, omega)
+    out = (pos, vel), (theta, eta, A, B), (kappa, gamma1, gamma2, omega)
+    if return_ray_history:
+        ray_chi_per_step = jnp.array(chis_list)
+        ray_theta_per_step = jnp.stack(thetas_list, axis=0)
+        return out + ((ray_chi_per_step, ray_theta_per_step),)
+    return out

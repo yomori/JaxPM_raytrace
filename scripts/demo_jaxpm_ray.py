@@ -104,6 +104,7 @@ ray_cell_size = (
     box_size[0] / ((ray_grid_shape[0] - 1) * r_src),
     box_size[1] / ((ray_grid_shape[1] - 1) * r_src),
 )
+print(ray_cell_size)
 a_lpt = 0.1
 a_forward = jnp.linspace(a_lpt, 1.0, 20, dtype=jnp.float64)
 
@@ -230,6 +231,8 @@ n_ray = ray_x.shape[1]
 max_pts = 8000
 cell_size = jnp.array([Lx / mesh_shape[0], Ly / mesh_shape[1], Lz / mesh_shape[2]])
 pos_mpch = pos * cell_size
+# CIC is periodic (mod mesh.shape); wrap into [0, L) so the plot shows one periodic box.
+pos_mpch = jnp.mod(pos_mpch, jnp.array([Lx, Ly, Lz]))
 rng = jax.random.PRNGKey(1)
 idx = jax.random.permutation(rng, jnp.arange(pos.shape[0]))[:max_pts]
 pos_plot = jnp.asarray(pos_mpch[idx])
@@ -249,7 +252,7 @@ for j in range(0, n_ray, ray_step):
 ax3d.set_xlabel("x [Mpc/h]")
 ax3d.set_ylabel("y [Mpc/h]")
 ax3d.set_zlabel("z (chi) [Mpc/h]")
-ax3d.set_title("Particles (black) and ray trajectories (red)")
+ax3d.set_title("Particles (black, periodic box) and ray trajectories (red)")
 plt.tight_layout()
 fig3d.savefig(out_dir / "demo_jaxpm_ray_3d.png", dpi=120)
 plt.close()
