@@ -93,7 +93,7 @@ def _build_backward_a_steps_to_box(cosmo, chi_max, n_shells):
 # Coarser transverse resolution + many more z points, with uniform spacing.
 mesh_shape = (64, 64, 1024)
 box_size = (256.0, 256.0, 4096.0)  # dx = dy = dz = 16 Mpc/h
-ray_grid_shape = (32, 32)
+ray_grid_shape = (64, 64)
 cosmo = jc.Planck15()
 # Ray shells are defined in chi-space so tracing stops exactly at box far side (z = box_size[2]).
 n_ray_shells = 8
