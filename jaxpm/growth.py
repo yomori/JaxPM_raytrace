@@ -1,6 +1,6 @@
 import jax.numpy as np
-from jax.numpy import interp
 from jax_cosmo.background import *
+from jax_cosmo.scipy.interpolate import interp
 from jax_cosmo.scipy.ode import odeint
 
 
@@ -26,7 +26,7 @@ def E(cosmo, a):
     where :math:`f(a)` is the Dark Energy evolution parameter computed
     by :py:meth:`.f_de`.
     """
-    return np.sqrt(Esqr(cosmo, a))
+    return np.power(Esqr(cosmo, a), 0.5)
 
 
 def df_de(cosmo, a, epsilon=1e-5):
@@ -550,11 +550,6 @@ def dGfa(cosmo, a):
     g1 = growth_factor(cosmo, a)
     D1f = f1 * g1 / a
     cache = cosmo._workspace['background.growth_factor']
-    # Backfill missing higher-derivative cache entries if needed
-    if 'h' not in cache:
-        # Ensure the growth ODE cache is fully populated with h/ h2 terms
-        _growth_factor_ODE(cosmo, np.atleast_1d(1.0))
-        cache = cosmo._workspace['background.growth_factor']
     f1p = cache['h'] / cache['a'] * cache['g']
     f1p = interp(np.log(a), np.log(cache['a']), f1p)
     Ea = E(cosmo, a)
@@ -590,12 +585,7 @@ def dGf2a(cosmo, a):
     g2 = growth_factor_second(cosmo, a)
     D2f = f2 * g2 / a
     cache = cosmo._workspace['background.growth_factor']
-    # Backfill missing higher-derivative cache entries if needed
-    if 'h2' not in cache:
-        _growth_factor_ODE(cosmo, np.atleast_1d(1.0))
-        cache = cosmo._workspace['background.growth_factor']
     f2p = cache['h2'] / cache['a'] * cache['g2']
     f2p = interp(np.log(a), np.log(cache['a']), f2p)
-    E_a = E(cosmo, a)
-    return (f2p * a**3 * E_a + D2f * a**3 * dEa(cosmo, a) +
-            3 * a**2 * E_a * D2f)
+    E = E(cosmo, a)
+    return (f2p * a**3 * E + D2f * a**3 * dEa(cosmo, a) + 3 * a**2 * E * D2f)
