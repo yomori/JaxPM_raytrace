@@ -219,6 +219,10 @@ def nbody_ray_kdk(pos, vel, theta, eta, A, B, a_steps, cosmo, mesh_shape, box_si
     a_steps: descending [a0=1, ..., a_min] (observer to source).
     Returns (pos, vel), (theta, eta, A, B), (kappa, gamma1, gamma2, omega).
     """
+    def _chi_scalar(a):
+        chi = jc.background.radial_comoving_distance(cosmo, a)
+        return float(jnp.asarray(chi).reshape(-1)[0])
+
     jc.background.radial_comoving_distance(cosmo, 1.0)
     growth_factor(cosmo, jnp.atleast_1d(a_steps[0]))
     acc = nbody_init_acc(pos, mesh_shape, cosmo)
@@ -226,10 +230,30 @@ def nbody_ray_kdk(pos, vel, theta, eta, A, B, a_steps, cosmo, mesh_shape, box_si
     for i in range(n - 1):
         a_prev = float(a_steps[i])
         a_next = float(a_steps[i + 1])
+        chi_prev = _chi_scalar(a_prev)
+        chi_next = _chi_scalar(a_next)
+        # Stop if we already reached the box far side.
+        if chi_prev >= float(box_size[2]):
+            break
+        # If this step would overshoot the box, trim to the exact chi = box_size[2] crossing.
+        if chi_next > float(box_size[2]):
+            lo = a_next
+            hi = a_prev
+            for _ in range(64):
+                mid = 0.5 * (lo + hi)
+                chi_mid = _chi_scalar(mid)
+                if chi_mid > float(box_size[2]):
+                    lo = mid
+                else:
+                    hi = mid
+            a_next = 0.5 * (lo + hi)
+            chi_next = _chi_scalar(a_next)
         grad_phi_3d = ray_tracing_postborn.pm_gradient_field(pos, mesh_shape, cosmo)
         theta, eta, A, B = ray_tracing_postborn.ray_step_kdk(
             theta, eta, A, B, a_prev, a_next, grad_phi_3d, cosmo, box_size, mesh_shape
         )
         pos, vel, acc = nbody_kdk_step(a_prev, a_next, pos, vel, acc, cosmo, mesh_shape)
+        if chi_next > float(box_size[2]):
+            break
     kappa, gamma1, gamma2, omega = ray_tracing_postborn.observe_from_A(A)
     return (pos, vel), (theta, eta, A, B), (kappa, gamma1, gamma2, omega)

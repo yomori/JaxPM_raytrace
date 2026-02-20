@@ -15,11 +15,25 @@ _C_MPC_H = 299792.458 / 100.0
 
 
 def init_ray_grid(ray_grid_shape, ray_cell_size, dtype=jnp.float32):
-    """Initialize ray state on a uniform 2D image-plane grid. theta [rad], eta=0, A=I, B=0."""
+    """Initialize ray state on a 2D image-plane grid.
+
+    Args:
+        ray_grid_shape: (nx, ny).
+        ray_cell_size: scalar angular spacing [rad] for both axes, or (sx, sy).
+        dtype: floating dtype.
+    Returns:
+        theta: (nx*ny, 2) [rad], eta: (nx*ny, 2), A: (nx*ny, 2, 2), B: (nx*ny, 2, 2).
+    """
     nx, ny = ray_grid_shape
     n_ray = nx * ny
-    ax = (jnp.arange(nx, dtype=dtype) - (nx - 1) / 2) * ray_cell_size
-    ay = (jnp.arange(ny, dtype=dtype) - (ny - 1) / 2) * ray_cell_size
+    if jnp.ndim(jnp.asarray(ray_cell_size)) == 0:
+        sx = jnp.asarray(ray_cell_size, dtype=dtype)
+        sy = sx
+    else:
+        sx = jnp.asarray(ray_cell_size[0], dtype=dtype)
+        sy = jnp.asarray(ray_cell_size[1], dtype=dtype)
+    ax = (jnp.arange(nx, dtype=dtype) - (nx - 1) / 2) * sx
+    ay = (jnp.arange(ny, dtype=dtype) - (ny - 1) / 2) * sy
     theta = jnp.stack(jnp.meshgrid(ax, ay, indexing="ij"), axis=-1).reshape(-1, 2)
     eta = jnp.zeros((n_ray, 2), dtype=dtype)
     A = jnp.tile(jnp.eye(2, dtype=dtype), (n_ray, 1, 1))
@@ -53,7 +67,7 @@ def _r_a(a, cosmo):
 
 
 def ray_force_at_positions(grad_phi_3d, theta, r_mid, box_size, mesh_shape, delta_chi, chi_lo, c_mpc_h=_C_MPC_H):
-    """d eta at ray positions from 3D gradient. Kick: d eta = (2/c^2)(delta_chi/r) grad_perp."""
+    """d eta at ray positions from 3D gradient. Theory: d eta/d chi = (2/c^2) r grad_perp Phi (2hamilton eq.80); kick deta = (2/c^2) r_mid delta_chi grad_perp."""
     nx, ny, nz = mesh_shape
     cell_size_x = box_size[0] / nx
     cell_size_y = box_size[1] / ny
@@ -68,7 +82,7 @@ def ray_force_at_positions(grad_phi_3d, theta, r_mid, box_size, mesh_shape, delt
         (Ly2 + theta[:, 1] * r_mid) / (cell_size_y + 1e-30),
     ], axis=-1)
     grad_at_rays = cic_read_2d(grad_2d, pos_ij)
-    factor = (2.0 / (c_mpc_h ** 2)) * (delta_chi / (r_mid + 1e-30))
+    factor = (2.0 / (c_mpc_h ** 2)) * (r_mid + 1e-30) * delta_chi
     deta = factor * grad_at_rays
     return deta
 
