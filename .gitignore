@@ -11,3 +11,17 @@
 
 *.DS_Store
 *.__pycache__
+
+*.png
+*.pdf
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.pdf
+*.tex
+*.log
+*.log.gz
+*.log.bz2
+*.log.xz
+*.log.lzma
