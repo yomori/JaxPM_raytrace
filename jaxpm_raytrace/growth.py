@@ -320,6 +320,15 @@ def _growth_rate_ODE(cosmo, a):
     return interp(a, cache["a"], cache["f"])
 
 
+def growth_d2_dlna2(cosmo, a):
+    """Second derivative of linear growth d2 D1 / d(ln a)^2, normalized with D1(1)=1.
+    Used for G_K in pmwd-style KDK kick factor."""
+    if not "background.growth_factor" in cosmo._workspace.keys():
+        _growth_factor_ODE(cosmo, np.atleast_1d(1.0))
+    cache = cosmo._workspace["background.growth_factor"]
+    return interp(a, cache["a"], cache["h"])
+
+
 def _growth_factor_second_ODE(cosmo, a):
     """Compute second order growth factor D2(a) at a given scale factor,
     normalised such that D(a=1) = 1.

@@ -4,8 +4,8 @@ import jax_cosmo
 import jax_cosmo.constants as constants
 from jax.scipy.ndimage import map_coordinates
 
-from jaxpm.painting import cic_paint_2d
-from jaxpm.utils import gaussian_smoothing
+from jaxpm_raytrace.painting import cic_paint_2d
+from jaxpm_raytrace.utils import gaussian_smoothing
 
 
 def density_plane(positions,

@@ -2,7 +2,7 @@ import jax
 import jax.lax as lax
 import jax.numpy as jnp
 
-from jaxpm.kernels import cic_compensation, fftk
+from jaxpm_raytrace.kernels import cic_compensation, fftk
 
 
 def cic_paint(mesh, positions, weight=None):
@@ -68,7 +68,7 @@ def cic_read(mesh, positions):
                                jnp.array(mesh.shape))
 
     return (mesh[neighboor_coords[..., 0], neighboor_coords[..., 1],
-                 neighboor_coords[..., 3]] * kernel).sum(axis=-1)
+                 neighboor_coords[..., 2]] * kernel).sum(axis=-1)
 
 
 def cic_paint_2d(mesh, positions, weight):
@@ -106,6 +106,29 @@ def cic_paint_2d(mesh, positions, weight):
     mesh = lax.scatter_add(mesh, neighboor_coords, kernel.reshape([-1, 4]),
                            dnums)
     return mesh
+
+
+def cic_read_2d(mesh_2d, pos_ij):
+    """
+    Bilinear (CIC) read from 2D mesh at float positions.
+    mesh_2d: (nx, ny, n_channel); pos_ij: (n_ray, 2) in mesh index units (float).
+    Returns (n_ray, n_channel).
+    """
+    nx, ny, _ = mesh_2d.shape
+    floor = jnp.floor(pos_ij)
+    i0 = jnp.clip(floor[:, 0].astype(jnp.int32), 0, nx - 2)
+    j0 = jnp.clip(floor[:, 1].astype(jnp.int32), 0, ny - 2)
+    di = pos_ij[:, 0] - floor[:, 0]
+    dj = pos_ij[:, 1] - floor[:, 1]
+    w00 = (1 - di) * (1 - dj)
+    w10 = di * (1 - dj)
+    w01 = (1 - di) * dj
+    w11 = di * dj
+    v00 = mesh_2d[i0, j0, :]
+    v10 = mesh_2d[i0 + 1, j0, :]
+    v01 = mesh_2d[i0, j0 + 1, :]
+    v11 = mesh_2d[i0 + 1, j0 + 1, :]
+    return w00[:, None] * v00 + w10[:, None] * v10 + w01[:, None] * v01 + w11[:, None] * v11
 
 
 def compensate_cic(field):
