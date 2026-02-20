@@ -307,8 +307,6 @@ dependencies:
       - docutils==0.21.2
       - ducc0==0.35.0
       - dunamai==1.22.0
-      - emu-growth==0.1.dev1+g1d54810
-      - emu-pk==0.1.dev26+g7efe24323.d20251118
       - equinox==0.11.8
       - etils==1.10.0
       - filelock==3.16.1
@@ -341,10 +339,8 @@ dependencies:
       - markupsafe==3.0.2
       - mdit-py-plugins==0.4.2
       - mdurl==0.1.2
-      - miko==0.1.dev106+g047acec.d20241111
       - ml-dtypes==0.5.0
       - msgpack==1.1.0
-      - multihmcgibbs==1.0.0
       - multipledispatch==1.0.0
       - mypy==1.13.0
       - mypy-extensions==1.0.0
@@ -386,7 +382,6 @@ dependencies:
       - pyyaml==6.0.2
       - questionary==2.0.1
       - rich==13.9.4
-      - robin==0.1.dev12+g73f7e3e.d20241108
       - s2fft==1.2.0
       - sacc==0.16
       - scikit-learn==1.5.2
