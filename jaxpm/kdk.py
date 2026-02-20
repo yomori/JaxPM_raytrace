@@ -1,5 +1,6 @@
 import jax_cosmo as jc
 from jaxpm.growth import *
+import jax.numpy as jnp
 
 def _G_K(cosmo, a):
     """Growth factor for kick denominator: a^3 E^2 (d2D/dln2 + (2 + dlnH/dlna) f). Units [H0^2]."""
